@@ -2,7 +2,7 @@
 AI_MODELS = [
     "chatgpt",
     "gemini",
-    "copilot"
+    "claude"
 ]
 
 # Chemins principaux

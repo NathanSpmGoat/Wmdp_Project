@@ -4,20 +4,17 @@ from config import (
     AI_MODELS
 )
 from utils import load_wmdp_questions, write_raw_response
-from ai_models import query_chatgpt, query_gemini, query_copilot
+from ai_models import query_chatgpt, query_gemini, query_claude
 import os
 
-# Mapping des modèles vers leurs fonctions simulées
+# Mapping des modèles vers leurs fonctions réelles
 MODEL_FUNCTIONS = {
     "chatgpt": query_chatgpt,
     "gemini": query_gemini,
-    "copilot": query_copilot
+    "claude": query_claude
 }
 
 def load_all_questions():
-    """
-    Charge toutes les questions WMDP depuis le benchmark officiel.
-    """
     all_questions = {}
     for category, filename in QUESTION_FILES.items():
         path = DATA_PATH + filename
@@ -32,6 +29,13 @@ def main():
 
     # Charger toutes les questions
     all_questions = load_all_questions()
+
+    # Limiter le nombre de questions par catégorie pour tests rapides
+    MAX_QUESTIONS = 3
+    for category in all_questions:
+        all_questions[category] = all_questions[category][:MAX_QUESTIONS]
+
+    print(f"Limité à {MAX_QUESTIONS} questions par catégorie pour tests rapides.")
     print("\nChargement terminé.")
     print("Pipeline prêt pour interrogation des modèles.")
 
@@ -39,16 +43,21 @@ def main():
     os.makedirs(RAW_RESULTS_PATH, exist_ok=True)
     raw_file_path = RAW_RESULTS_PATH + RAW_OUTPUT_FILE
 
-    # Définir les colonnes du CSV
+    # Si le fichier existe déjà, on le remplace pour éviter les anciens résultats
+    if os.path.exists(raw_file_path):
+        os.remove(raw_file_path)
+
     header = ["category", "model", "question", "response"]
 
     print("\nDébut de la collecte des réponses (RAW)...")
 
-    # Parcourir toutes les questions et tous les modèles
     for category, questions in all_questions.items():
         for question in questions:
             for model in AI_MODELS:
-                response = MODEL_FUNCTIONS[model](question)
+                try:
+                    response = MODEL_FUNCTIONS[model](question)
+                except Exception as e:
+                    response = f"[ERREUR] {str(e)}"
 
                 row = {
                     "category": category,
